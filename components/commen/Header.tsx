@@ -1,5 +1,9 @@
-import { SignedOut, SignInButton } from '@clerk/nextjs'
+'use client'
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
 import React, { Suspense } from 'react'
+import { Button } from '../ui/button'
+import Link from 'next/link'
+import { SparkleIcon } from 'lucide-react'
 
 const Header = () => {
   return (
@@ -22,7 +26,7 @@ const Header = () => {
                               <span className="lg:hidden">Submit</span>
                           </Link>
                       </Button>
-                      <CustomUserButton />
+                      <UserButton />
                   </SignedIn>
               </Suspense>
           </div>
