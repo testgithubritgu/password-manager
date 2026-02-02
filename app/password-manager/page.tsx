@@ -1,0 +1,307 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { addCard, addPassword, fetchCards, fetchPasswords } from "@/lib/firebase";
+
+/* ------------------- ZOD SCHEMAS ------------------- */
+
+const cardSchema = z.object({
+    number: z
+        .string()
+        .regex(/^\d{4} \d{4} \d{4} \d{4}$/, "Card must be 16 digits"),
+    expiry: z
+        .string()
+        .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Invalid expiry date"),
+    cvv: z.string().regex(/^\d{3,4}$/, "Invalid CVV"),
+});
+
+const passwordSchema = z.object({
+    website: z.string().min(2, "Website is required"),
+    username: z.string().min(2, "Username is required"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type CardFormData = z.infer<typeof cardSchema>;
+type PasswordFormData = z.infer<typeof passwordSchema>;
+
+export default function PasswordManager() {
+    const [showCardsSkeleton,setShowCardsSkeleton] = useState<boolean>(false)
+    const [cards, setCards] = useState<
+        { number: string; expiry: string }[]
+    >([]);
+
+    const [passwords, setPasswords] = useState<
+        { website: string; username: string }[]
+    >([]);
+
+    /* ------------------- CARD FORM ------------------- */
+
+    const {
+        register: registerCard,
+        handleSubmit: handleCardSubmit,
+        formState: { errors: cardErrors, isSubmitting },
+        setValue
+
+    } = useForm<CardFormData>({
+        resolver: zodResolver(cardSchema),
+    });
+
+    const onAddCard = async (data: CardFormData) => {
+        const last4 = data.number.slice(-4);
+
+        await addCard({
+            number: `**** **** **** ${last4}`,
+            expiry: data.expiry,
+        });
+
+        const updatedCards = await fetchCards();
+        setCards(updatedCards as any);
+    };
+    /* ------------------- PASSWORD FORM ------------------- */
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+
+    } = useForm<PasswordFormData>({
+        resolver: zodResolver(passwordSchema),
+    });
+
+    const onAddPassword = async (data: PasswordFormData) => {
+        await addPassword({
+            website: data.website,
+            username: data.username,
+        });
+
+        const updatedPasswords = await fetchPasswords();
+        setPasswords(updatedPasswords as any);
+    };
+    const formatCardNumber = (value: string) => {
+        const cleaned = value.replace(/\D/g, ""); // remove non-digits
+        const limited = cleaned.slice(0, 16); // max 16 digits
+
+        const formatted = limited
+            .match(/.{1,4}/g)
+            ?.join(" ") || "";
+
+        return formatted;
+    };
+    const formatExpiry = (value: string) => {
+        const cleaned = value.replace(/\D/g, "").slice(0, 4);
+
+        if (cleaned.length >= 3) {
+            return cleaned.slice(0, 2) + "/" + cleaned.slice(2);
+        }
+
+        return cleaned;
+    };
+    const formatCVV = (value: string) => {
+        return value.replace(/\D/g, "").slice(0, 4);
+    };
+    useEffect(() => {
+      try {
+          const loadData = async () => {
+              const cardsData = await fetchCards();
+              const passwordData = await fetchPasswords();
+                setShowCardsSkeleton(false)
+              setCards(cardsData as any);
+              setPasswords(passwordData as any);
+          };
+
+          loadData();
+      } catch (error) {
+       
+        throw new Error("something went wrond with fetching firbase data")
+      }
+    }, []);
+
+    return (
+        <div className="min-h-screen bg-black p-6">
+            <h1 className="text-3xl font-bold text-center mb-10">
+                Password Manager
+            </h1>
+
+            {/* TOP SECTION */}
+            <div className="grid md:grid-cols-2 gap-8">
+
+                {/* ADD CARD */}
+                <form
+                    onSubmit={handleCardSubmit(onAddCard)}
+                    className="bg-gray-400 p-6 rounded-xl shadow"
+                >
+                    <h2 className="text-xl font-semibold mb-4">
+                        Add a Credit Card
+                    </h2>
+
+                    <input
+                        type="text"
+                        placeholder="1234 5678 9012 3456"
+                        {...registerCard("number")}
+                        onChange={(e) => {
+                            e.target.value = formatCardNumber(e.target.value);
+                        }}
+                        className="w-full border border-black text-pretty outline-none p-2 rounded mb-1"
+                    />
+                    {cardErrors.number && (
+                        <p className="text-red-500 text-sm mb-2">
+                            {cardErrors.number.message}
+                        </p>
+                    )}
+
+                    <div className="flex gap-4">
+                        <div className="w-1/2">
+                            <input
+                                type="text"
+                                placeholder="MM/YY"
+                                {...registerCard("expiry")}
+                                maxLength={5}
+                                inputMode="numeric"
+
+                                onChange={(e) => {
+                                    const formatted = formatExpiry(e.target.value);
+                                    setValue("expiry", formatted);
+                                }}
+                                className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
+                            />
+                            {cardErrors.expiry && (
+                                <p className="text-red-500 text-sm">
+                                    {cardErrors.expiry.message}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="w-1/2">
+                            <input
+                                type="text"
+                                placeholder="123"
+                                maxLength={4}
+                                inputMode="numeric"
+
+                                {...registerCard("cvv")}
+                                className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
+                                onChange={(e) => {
+                                    const formatted = formatCVV(e.target.value);
+                                    setValue("cvv", formatted);
+                                }}
+                            />
+                            {cardErrors.cvv && (
+                                <p className="text-red-500 text-sm">
+                                    {cardErrors.cvv.message}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`w-full py-2 rounded mt-4 text-white transition 
+  ${isSubmitting ? "bg-purple-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"}`}
+                    >
+                        {isSubmitting ? "Adding..." : "Add Card"}
+                    </button>
+                </form>
+
+                {/* ADD PASSWORD */}
+                <form
+                    onSubmit={handleSubmit(onAddPassword)}
+                    className="bg-gray-400 p-6 rounded-xl shadow"
+                >
+                    <h2 className="text-xl font-semibold mb-4">
+                        Add a Password
+                    </h2>
+
+                    <div className="space-y-3">
+                        <input
+                            type="text"
+                            placeholder="example.com"
+                            {...register("website")}
+                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
+                        />
+                        {errors.website && (
+                            <p className="text-red-500 text-sm mb-2">
+                                {errors.website.message}
+                            </p>
+                        )}
+
+                        <input
+                            type="text"
+                            placeholder="johndoe"
+                            {...register("username")}
+                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
+                        />
+                        {errors.username && (
+                            <p className="text-red-500 text-sm mb-2">
+                                {errors.username.message}
+                            </p>
+                        )}
+
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            {...register("password")}
+                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
+                        />
+                        {errors.password && (
+                            <p className="text-red-500 text-sm mb-2">
+                                {errors.password.message}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="w-full bg-purple-600 text-white py-2 rounded mt-4 hover:bg-purple-700 transition"
+                        >
+                            Add Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* BOTTOM SECTION */}
+            <div className="grid md:grid-cols-2 gap-8 mt-12">
+
+                {/* CARDS LIST */}
+                <div className="bg-white p-6 rounded-xl shadow">
+                    <h2 className="text-xl text-black font-semibold mb-4">
+                        Your Cards
+                    </h2>
+
+                    {cards.map((card, index) => (
+                        <div
+                            key={index}
+                            className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
+                        >
+                            <span>{card.number}</span>
+                            <span>{card.expiry}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* PASSWORD LIST */}
+                <div className="bg-white p-6 rounded-xl shadow">
+                    <h2 className="text-xl font-semibold mb-4">
+                        Your Passwords
+                    </h2>
+
+                    {passwords.map((item, index) => (
+                        <div
+                            key={index}
+                            className="bg-gray-100 p-3 rounded mb-2"
+                        >
+                            <p className="font-semibold">{item.website}</p>
+                            <p className="text-sm text-gray-600">
+                                {item.username}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+            </div>
+        </div>
+    );
+}
