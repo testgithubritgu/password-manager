@@ -75,7 +75,7 @@ export default function PasswordManager() {
     const {
         register,
         handleSubmit,
-        formState: { errors, isLoading },
+        formState: { errors, isLoading ,isSubmitting:passDataAdding},
         reset: resetPass
     } = useForm<PasswordFormData>({
         resolver: zodResolver(passwordSchema),
@@ -116,23 +116,25 @@ export default function PasswordManager() {
         return value.replace(/\D/g, "").slice(0, 4);
     };
     useEffect(() => {
-        try {
-            const loadData = async () => {
-                const cardsData = await fetchCards();
-                const passwordData = await fetchPasswords();
+        if (!user) return;
+
+        const loadData = async () => {
+            try {
+                const cardsData = await fetchCards(user.id);
+                const passwordData = await fetchPasswords(user.id);
                 if (cardsData) setShowCardsSkeleton(true)
                 console.log(cardsData, passwordData, "<<<<<<<<<<<<<<<<,,cards and password")
                 if (passwordData) setShowPasswordSkeleton(false)
                 setCards(cardsData as any);
                 setPasswords(passwordData as any);
-            };
+            } catch (error) {
+                console.log(error)
+                throw new Error("something went wrong with fetching firebase data")
+            }
+        };
 
-            loadData();
-        } catch (error) {
-            console.log(error)
-            throw new Error("something went wrond with fetching firbase data")
-        }
-    }, []);
+        loadData();
+    }, [user]);
     console.log(isLoading, "<<<<< is subiting")
     return (
         <div className="min-h-screen bg-black p-6">
@@ -271,7 +273,7 @@ export default function PasswordManager() {
                             type="submit"
                             className="w-full bg-purple-600 text-white py-2 rounded mt-4 hover:bg-purple-700 transition"
                         >
-                            Add Password
+                            {passDataAdding ? "Adding..." : "Add Card"}
                         </button>
                     </div>
                 </form>
@@ -286,21 +288,21 @@ export default function PasswordManager() {
                         Your Cards
                     </h2>
 
-                   
-                    {!showCardsSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> : 
-                    <>
-                    <div>
-                      {cards.length > 0 ?  cards.map((card, index) => (
-                                <div
-                                    key={index}
-                                    className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
-                                >
-                                    <span>{card.number}</span>
-                                    <span>{card.expiry}</span>
-                                </div>
-                                )): <p className="text-black">no cards data available</p>}
-                    </div>
-                    </>
+
+                    {!showCardsSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> :
+                        <>
+                            <div>
+                                {cards.length > 0 ? cards.map((card, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
+                                    >
+                                        <span>{card.number}</span>
+                                        <span>{card.expiry}</span>
+                                    </div>
+                                )) : <p className="text-black">no cards data available</p>}
+                            </div>
+                        </>
                     }
                 </div>
 
