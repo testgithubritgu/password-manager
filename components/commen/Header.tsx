@@ -1,8 +1,9 @@
 'use client'
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton, useUser } from '@clerk/nextjs'
 import { Button } from '../ui/button'
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+
 
 import {
     DropdownMenu,
@@ -14,6 +15,7 @@ import Link from 'next/link'
 
 export function ModeToggle() {
     const { setTheme } = useTheme()
+
 
     return (
         <DropdownMenu>
@@ -40,7 +42,7 @@ export function ModeToggle() {
 }
 
 const Header = () => {
-    
+    const { isSignedIn } = useUser();
     return (
 
         <div className="hidden md:flex items-center gap-3">
@@ -54,7 +56,8 @@ const Header = () => {
                         <li className='cursor-pointer '>Services</li>
                         <li className='cursor-pointer'>Industry</li>
                     </ul>
-                 <SignedOut >
+                    {!isSignedIn  && <div >
+                        <SignedOut >
                             <SignInButton>
                                 <Button variant="outline" size="sm" className='mr-3'>Sign In</Button>
                             </SignInButton>
@@ -62,6 +65,7 @@ const Header = () => {
                                 <Button size="sm">Sign Up</Button>
                             </SignUpButton>
                         </SignedOut>
+               </div>}
             
                 <SignedIn>
                     
