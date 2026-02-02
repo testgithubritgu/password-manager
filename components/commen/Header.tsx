@@ -1,14 +1,8 @@
 'use client'
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
 import { Button } from '../ui/button'
-import Link from 'next/link'
-import { SparkleIcon } from 'lucide-react'
-
-
-
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-
 
 import {
     DropdownMenu,
@@ -16,6 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from 'next/link'
 
 export function ModeToggle() {
     const { setTheme } = useTheme()
@@ -45,27 +40,29 @@ export function ModeToggle() {
 }
 
 const Header = () => {
+    
     return (
 
         <div className="hidden md:flex items-center gap-3">
             <div className="hidden md:flex items-center  w-full flex-col gap-3 ">
                 <div className='bg-border flex justify-between items-center px-5 py-6 text-white w-full' >
-                <SignedOut>
-                    <SignInButton>
-                        <Button variant="outline" size="sm">Sign In</Button>
-                    </SignInButton>
-                    <SignUpButton>
-                        <Button size="sm">Sign Up</Button>
-                    </SignUpButton>
-                </SignedOut>
+             
                     <ModeToggle />
                     <ul className='flex justify-center gap-4'>
-                        <li className='imptext text-red-600'>Home</li>
-                        <li>About</li>
-                        <li>Services</li>
-                        <li>Industry</li>
+                        <li className='cursor-pointer'><Link href={"/"}>Home</Link></li>
+                        <li className='cursor-pointer'>About</li>
+                        <li className='cursor-pointer '>Services</li>
+                        <li className='cursor-pointer'>Industry</li>
                     </ul>
-
+                 <SignedOut >
+                            <SignInButton>
+                                <Button variant="outline" size="sm" className='mr-3'>Sign In</Button>
+                            </SignInButton>
+                            <SignUpButton>
+                                <Button size="sm">Sign Up</Button>
+                            </SignUpButton>
+                        </SignedOut>
+            
                 <SignedIn>
                     
                         <UserButton />
