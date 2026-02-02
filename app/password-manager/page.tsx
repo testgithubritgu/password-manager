@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addCard, addPassword, fetchCards, fetchPasswords } from "@/lib/firebase";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@clerk/nextjs";
 /* ------------------- ZOD SCHEMAS ------------------- */
 
 const cardSchema = z.object({
@@ -28,14 +29,18 @@ type CardFormData = z.infer<typeof cardSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function PasswordManager() {
-    const [showCardsSkeleton,setShowCardsSkeleton] = useState<boolean>(false)
-    const [cards, setCards] = useState<
-        { number: string; expiry: string }[]
-    >([]);
+    const { user } = useUser();
+    const [showCardsSkeleton, setShowCardsSkeleton] = useState<boolean>(false)
+    const [cards, setCards] = useState<any[]>([]);
+    const [passwords, setPasswords] = useState<any[]>([]);
+    const [showPasswordSkeleton, setShowPasswordSkeleton] = useState<boolean>(true)
+    // const [cards, setCards] = useState<
+    //     { number: string; expiry: string }[]
+    // >([]);
 
-    const [passwords, setPasswords] = useState<
-        { website: string; username: string }[]
-    >([]);
+    // const [passwords, setPasswords] = useState<
+    //     { website: string; username: string }[]
+    // >([]);
 
     /* ------------------- CARD FORM ------------------- */
 
@@ -43,42 +48,50 @@ export default function PasswordManager() {
         register: registerCard,
         handleSubmit: handleCardSubmit,
         formState: { errors: cardErrors, isSubmitting },
-        setValue
+        setValue,
+        reset
+
 
     } = useForm<CardFormData>({
         resolver: zodResolver(cardSchema),
     });
 
     const onAddCard = async (data: CardFormData) => {
+        if (!user) return;
+
         const last4 = data.number.slice(-4);
 
-        await addCard({
+        await addCard(user.id, {
             number: `**** **** **** ${last4}`,
             expiry: data.expiry,
         });
 
-        const updatedCards = await fetchCards();
-        setCards(updatedCards as any);
+        const updatedCards = await fetchCards(user.id);
+        setCards(updatedCards);
+        reset();
     };
     /* ------------------- PASSWORD FORM ------------------- */
 
     const {
         register,
         handleSubmit,
-        formState: { errors },
-
+        formState: { errors, isLoading },
+        reset: resetPass
     } = useForm<PasswordFormData>({
         resolver: zodResolver(passwordSchema),
     });
 
     const onAddPassword = async (data: PasswordFormData) => {
-        await addPassword({
+        if (!user) return;
+
+        await addPassword(user.id, {
             website: data.website,
             username: data.username,
         });
 
-        const updatedPasswords = await fetchPasswords();
-        setPasswords(updatedPasswords as any);
+        const updatedPasswords = await fetchPasswords(user.id);
+        setPasswords(updatedPasswords);
+        resetPass();
     };
     const formatCardNumber = (value: string) => {
         const cleaned = value.replace(/\D/g, ""); // remove non-digits
@@ -103,22 +116,24 @@ export default function PasswordManager() {
         return value.replace(/\D/g, "").slice(0, 4);
     };
     useEffect(() => {
-      try {
-          const loadData = async () => {
-              const cardsData = await fetchCards();
-              const passwordData = await fetchPasswords();
-                setShowCardsSkeleton(false)
-              setCards(cardsData as any);
-              setPasswords(passwordData as any);
-          };
+        try {
+            const loadData = async () => {
+                const cardsData = await fetchCards();
+                const passwordData = await fetchPasswords();
+                if (cardsData) setShowCardsSkeleton(true)
+                console.log(cardsData, passwordData, "<<<<<<<<<<<<<<<<,,cards and password")
+                if (passwordData) setShowPasswordSkeleton(false)
+                setCards(cardsData as any);
+                setPasswords(passwordData as any);
+            };
 
-          loadData();
-      } catch (error) {
-       
-        throw new Error("something went wrond with fetching firbase data")
-      }
+            loadData();
+        } catch (error) {
+            console.log(error)
+            throw new Error("something went wrond with fetching firbase data")
+        }
     }, []);
-
+    console.log(isLoading, "<<<<< is subiting")
     return (
         <div className="min-h-screen bg-black p-6">
             <h1 className="text-3xl font-bold text-center mb-10">
@@ -126,7 +141,7 @@ export default function PasswordManager() {
             </h1>
 
             {/* TOP SECTION */}
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 items-start gap-8">
 
                 {/* ADD CARD */}
                 <form
@@ -263,7 +278,7 @@ export default function PasswordManager() {
             </div>
 
             {/* BOTTOM SECTION */}
-            <div className="grid md:grid-cols-2 gap-8 mt-12">
+            <div className="grid md:grid-cols-2 items-start gap-8 mt-12">
 
                 {/* CARDS LIST */}
                 <div className="bg-white p-6 rounded-xl shadow">
@@ -271,34 +286,51 @@ export default function PasswordManager() {
                         Your Cards
                     </h2>
 
-                    {cards.map((card, index) => (
-                        <div
-                            key={index}
-                            className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
-                        >
-                            <span>{card.number}</span>
-                            <span>{card.expiry}</span>
-                        </div>
-                    ))}
+                   
+                    {!showCardsSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> : 
+                    <>
+                    <div>
+                      {cards.length > 0 ?  cards.map((card, index) => (
+                                <div
+                                    key={index}
+                                    className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
+                                >
+                                    <span>{card.number}</span>
+                                    <span>{card.expiry}</span>
+                                </div>
+                                )): <p className="text-black">no cards data available</p>}
+                    </div>
+                    </>
+                    }
                 </div>
 
                 {/* PASSWORD LIST */}
-                <div className="bg-white p-6 rounded-xl shadow">
+                <div className="bg-white p-6 text-black rounded-xl shadow">
                     <h2 className="text-xl font-semibold mb-4">
                         Your Passwords
                     </h2>
 
-                    {passwords.map((item, index) => (
-                        <div
-                            key={index}
-                            className="bg-gray-100 p-3 rounded mb-2"
-                        >
-                            <p className="font-semibold">{item.website}</p>
-                            <p className="text-sm text-gray-600">
-                                {item.username}
-                            </p>
-                        </div>
-                    ))}
+                    {
+                        showPasswordSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> :
+                            <div>
+                                {
+                                    passwords.length > 0 ? passwords.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-gray-100 p-3 rounded mb-2"
+                                        >
+                                            <p className="font-semibold">{item.website}</p>
+                                            <p className="text-sm text-gray-600">
+                                                {item.username}
+                                            </p>
+                                        </div>
+                                    )) :
+                                        <div>
+                                            <p>no password data is available</p>
+                                        </div>
+                                }
+                            </div>
+                    }
                 </div>
 
             </div>
