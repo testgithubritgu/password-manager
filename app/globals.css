@@ -123,3 +123,6 @@
     @apply bg-background text-foreground;
   }
 }
+.imptext {
+  color:rgb(102, 233, 124) 
+}
