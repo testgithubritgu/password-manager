@@ -21,7 +21,7 @@ const cardSchema = z.object({
 
 const passwordSchema = z.object({
     website: z.string().min(2, "Website is required"),
-    username: z.string().min(2, "Username is required"),
+   
     password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -86,7 +86,7 @@ export default function PasswordManager() {
 
         await addPassword(user.id, {
             website: data.website,
-            username: data.username,
+            password: data.password ?? "",
         });
 
         const updatedPasswords = await fetchPasswords(user.id);
@@ -137,204 +137,210 @@ export default function PasswordManager() {
     }, [user]);
     console.log(isLoading, "<<<<< is subiting")
     return (
-        <div className="min-h-screen bg-black p-6">
-            <h1 className="text-3xl font-bold text-center mb-10">
-                Password Manager
-            </h1>
+        <div className="min-h-screen bg-black px-4 py-8 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
+                <h1 className="text-3xl font-bold text-center mb-12">
+                    Password Manager
+                </h1>
 
-            {/* TOP SECTION */}
-            <div className="grid md:grid-cols-2 items-start gap-8">
+                {/* TOP SECTION - Forms */}
+                <div className="grid md:grid-cols-2  gap-6 lg:gap-10">
 
-                {/* ADD CARD */}
-                <form
-                    onSubmit={handleCardSubmit(onAddCard)}
-                    className="bg-gray-400 p-6 rounded-xl shadow"
-                >
-                    <h2 className="text-xl font-semibold mb-4">
-                        Add a Credit Card
-                    </h2>
-
-                    <input
-                        type="text"
-                        placeholder="1234 5678 9012 3456"
-                        {...registerCard("number")}
-                        onChange={(e) => {
-                            e.target.value = formatCardNumber(e.target.value);
-                        }}
-                        className="w-full border border-black text-pretty outline-none p-2 rounded mb-1"
-                    />
-                    {cardErrors.number && (
-                        <p className="text-red-500 text-sm mb-2">
-                            {cardErrors.number.message}
-                        </p>
-                    )}
-
-                    <div className="flex gap-4">
-                        <div className="w-1/2">
-                            <input
-                                type="text"
-                                placeholder="MM/YY"
-                                {...registerCard("expiry")}
-                                maxLength={5}
-                                inputMode="numeric"
-
-                                onChange={(e) => {
-                                    const formatted = formatExpiry(e.target.value);
-                                    setValue("expiry", formatted);
-                                }}
-                                className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
-                            />
-                            {cardErrors.expiry && (
-                                <p className="text-red-500 text-sm">
-                                    {cardErrors.expiry.message}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="w-1/2">
-                            <input
-                                type="text"
-                                placeholder="123"
-                                maxLength={4}
-                                inputMode="numeric"
-
-                                {...registerCard("cvv")}
-                                className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
-                                onChange={(e) => {
-                                    const formatted = formatCVV(e.target.value);
-                                    setValue("cvv", formatted);
-                                }}
-                            />
-                            {cardErrors.cvv && (
-                                <p className="text-red-500 text-sm">
-                                    {cardErrors.cvv.message}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className={`w-full py-2 rounded mt-4 text-white transition 
-  ${isSubmitting ? "bg-purple-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"}`}
+                    {/* ADD CARD */}
+                    <form
+                        onSubmit={handleCardSubmit(onAddCard)}
+                        className="bg-gray-400 p-6 sm:p-8 rounded-xl shadow-lg"
                     >
-                        {isSubmitting ? "Adding..." : "Add Card"}
-                    </button>
-                </form>
+                        <h2 className="text-xl font-semibold mb-6">
+                            Add a Credit Card
+                        </h2>
 
-                {/* ADD PASSWORD */}
-                <form
-                    onSubmit={handleSubmit(onAddPassword)}
-                    className="bg-gray-400 p-6 rounded-xl shadow"
-                >
-                    <h2 className="text-xl font-semibold mb-4">
-                        Add a Password
-                    </h2>
-
-                    <div className="space-y-3">
-                        <input
-                            type="text"
-                            placeholder="example.com"
-                            {...register("website")}
-                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
-                        />
-                        {errors.website && (
-                            <p className="text-red-500 text-sm mb-2">
-                                {errors.website.message}
-                            </p>
-                        )}
-
-                        <input
-                            type="text"
-                            placeholder="johndoe"
-                            {...register("username")}
-                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
-                        />
-                        {errors.username && (
-                            <p className="text-red-500 text-sm mb-2">
-                                {errors.username.message}
-                            </p>
-                        )}
-
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            {...register("password")}
-                            className="w-full  border border-black text-pretty outline-none p-2 rounded mb-1"
-                        />
-                        {errors.password && (
-                            <p className="text-red-500 text-sm mb-2">
-                                {errors.password.message}
-                            </p>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full bg-purple-600 text-white py-2 rounded mt-4 hover:bg-purple-700 transition"
-                        >
-                            {passDataAdding ? "Adding..." : "Add Card"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            {/* BOTTOM SECTION */}
-            <div className="grid md:grid-cols-2 items-start gap-8 mt-12">
-
-                {/* CARDS LIST */}
-                <div className="bg-white p-6 rounded-xl shadow">
-                    <h2 className="text-xl text-black font-semibold mb-4">
-                        Your Cards
-                    </h2>
-
-
-                    {!showCardsSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> :
-                        <>
+                        <div className="space-y-4">
                             <div>
-                                {cards.length > 0 ? cards.map((card, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex justify-between text-black bg-gray-100 p-3 rounded mb-2"
-                                    >
-                                        <span>{card.number}</span>
-                                        <span>{card.expiry}</span>
-                                    </div>
-                                )) : <p className="text-black">no cards data available</p>}
+                                <input
+                                    type="text"
+                                    placeholder="1234 5678 9012 3456"
+                                    {...registerCard("number")}
+                                    onChange={(e) => {
+                                        e.target.value = formatCardNumber(e.target.value);
+                                    }}
+                                    className="w-full border border-black text-pretty outline-none px-4 py-3 rounded-lg"
+                                />
+                                {cardErrors.number && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {cardErrors.number.message}
+                                    </p>
+                                )}
                             </div>
-                        </>
-                    }
+
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="MM/YY"
+                                        {...registerCard("expiry")}
+                                        maxLength={5}
+                                        inputMode="numeric"
+                                        onChange={(e) => {
+                                            const formatted = formatExpiry(e.target.value);
+                                            setValue("expiry", formatted);
+                                        }}
+                                        className="w-full border border-black text-pretty outline-none px-4 py-3 rounded-lg"
+                                    />
+                                    {cardErrors.expiry && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {cardErrors.expiry.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="CVV"
+                                        maxLength={4}
+                                        inputMode="numeric"
+                                        {...registerCard("cvv")}
+                                        onChange={(e) => {
+                                            const formatted = formatCVV(e.target.value);
+                                            setValue("cvv", formatted);
+                                        }}
+                                        className="w-full border border-black text-pretty outline-none px-4 py-3 rounded-lg"
+                                    />
+                                    {cardErrors.cvv && (
+                                        <p className="text-red-500 text-sm mt-1">
+                                            {cardErrors.cvv.message}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className={`w-full py-3 rounded-lg mt-2 text-white font-medium transition ${isSubmitting ? "bg-purple-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"}`}
+                            >
+                                {isSubmitting ? "Adding..." : "Add Card"}
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* ADD PASSWORD */}
+                    <form
+                        onSubmit={handleSubmit(onAddPassword)}
+                        className="bg-gray-400 p-6 sm:p-8 rounded-xl shadow-lg"
+                    >
+                        <h2 className="text-xl font-semibold mb-6">
+                            Add a Password
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <input
+                                    type="text"
+                                    placeholder="example.com"
+                                    {...register("website")}
+                                    className="w-full border border-black text-pretty outline-none px-4 py-3 rounded-lg"
+                                />
+                                {errors.website && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.website.message}
+                                    </p>
+                                )}
+                            </div>
+
+                            
+
+                            <div>
+                                <input
+                                    type="password"
+                                    placeholder="Password"
+                                    {...register("password")}
+                                    className="w-full border border-black text-pretty outline-none px-4 py-3 rounded-lg"
+                                />
+                                {errors.password && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.password.message}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={passDataAdding}
+                                className={`w-full py-3 rounded-lg mt-2 text-white font-medium transition ${passDataAdding ? "bg-purple-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"}`}
+                            >
+                                {passDataAdding ? "Adding..." : "Add Password"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                {/* PASSWORD LIST */}
-                <div className="bg-white p-6 text-black rounded-xl shadow">
-                    <h2 className="text-xl font-semibold mb-4">
-                        Your Passwords
-                    </h2>
+                {/* BOTTOM SECTION - Lists */}
+                <div className="grid md:grid-cols-2 items-start gap-6 lg:gap-10 mt-10 lg:mt-14">
 
-                    {
-                        showPasswordSkeleton ? <Skeleton className="h-14 w-full bg-gray-500 " /> :
-                            <div>
-                                {
-                                    passwords.length > 0 ? passwords.map((item, index) => (
+                    {/* CARDS LIST */}
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                        <h2 className="text-xl text-black font-semibold mb-6">
+                            Your Cards
+                        </h2>
+
+                        {!showCardsSkeleton ? (
+                            <Skeleton className="h-24 w-full bg-gray-300 rounded-xl" />
+                        ) : (
+                                <div className="space-y-4 max-h-100 overflow-y-auto">
+                                {cards.length > 0 ? (
+                                    cards.map((card, index) => (
                                         <div
                                             key={index}
-                                            className="bg-gray-100 p-3 rounded mb-2"
+                                            className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-5 rounded-xl shadow-md"
+                                        >
+                                            <p className="text-xs uppercase tracking-wider text-purple-200 mb-3">Card Number</p>
+                                            <p className="font-mono text-lg tracking-widest mb-4">{card.number}</p>
+                                            <div className="flex justify-between items-end">
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-wider text-purple-200">Expiry</p>
+                                                    <p className="font-mono text-sm">{card.expiry}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">No cards saved yet</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* PASSWORD LIST */}
+                    <div className="bg-white p-6 sm:p-8 text-black rounded-xl shadow-lg">
+                        <h2 className="text-xl font-semibold mb-6">
+                            Your Passwords
+                        </h2>
+
+                        {showPasswordSkeleton ? (
+                            <Skeleton className="h-16 w-full bg-gray-300 rounded-lg" />
+                        ) : (
+                                <div className="space-y-3  max-h-100  overflow-y-auto">
+                                {passwords.length > 0 ? (
+                                    passwords.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-gray-100 px-4 py-4 rounded-lg"
                                         >
                                             <p className="font-semibold">{item.website}</p>
-                                            <p className="text-sm text-gray-600">
+                                            <p className="text-sm text-gray-600 mt-1">
                                                 {item.username}
                                             </p>
                                         </div>
-                                    )) :
-                                        <div>
-                                            <p>no password data is available</p>
-                                        </div>
-                                }
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">No passwords saved yet</p>
+                                )}
                             </div>
-                    }
+                        )}
+                    </div>
                 </div>
-
             </div>
         </div>
     );

@@ -48,8 +48,8 @@ const Header = () => {
     return (
 
         <div className="hidden md:flex items-center gap-3">
-            <div className="hidden md:flex items-center  w-full flex-col gap-3">
-                <div className='bg-border flex justify-between items-center px-5 text-white w-full' >
+            <div className="hidden md:flex items-center  w-full flex-col gap-3 ">
+                <div className='bg-border flex justify-between items-center px-5 py-6 text-white w-full' >
                 <SignedOut>
                     <SignInButton>
                         <Button variant="outline" size="sm">Sign In</Button>

@@ -53,7 +53,7 @@ export const addPassword = async (
   userId: string,
   passwordData: {
     website: string;
-    username: string;
+    password: string;
   },
 ) => {
   try {
